@@ -1,0 +1,12 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sOnlySignedImages
+metadata:
+  name: signed-images
+spec:
+  enforcementAction: "warn"
+  match:
+    kinds:
+      - apiGroups: ["apps", "extensions"]
+        kinds: ["Deployment", "DaemonSet", "StatefulSet"]
+    namespaces:
+      - "test-opa"

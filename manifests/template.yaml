@@ -1,0 +1,33 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sonlysignedimages
+  annotations:
+    description: Requires use only signed images
+spec:
+  crd:
+    spec:
+      names: 
+        kind: K8sOnlySignedImages
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sonlysignedimages
+
+        violation[{"msg": msg, "details": {}}] {
+          container = input_containers[_]
+          body := { "image": container.image , "name": container.name, "cosignKeychain": "testkey", "kind": input.review.object.kind, "objectName": input.review.object.metadata.name, "objectNamespace": input.review.object.metadata.namespace}
+          headers_json := { "Content-Type": "application/json" }
+          cosignHTTWrapperURL := "http://%API_IP%:8080/verify"
+          output = http.send({"method": "post", "url": cosignHTTWrapperURL, "headers": headers_json, "body": body})
+          output.body.verified != true
+          msg := sprintf("%v/%v in %v namespace have unsigned image: %v for container: %v", [input.review.object.kind, input.review.object.metadata.name, input.review.object.metadata.namespace, container.image, container.name])
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.template.spec.containers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.template.spec.initContainers[_]
+        }

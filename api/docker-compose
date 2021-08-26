@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  memcached:
+    image: memcached
+    restart: always
+    ports:
+      - 11211:11211
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      MEMCACHED_HOST: "memcached"
+      MEMCACHED_PORT: "11211"
+      PYTHONUNBUFFERED: "1"
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "%VAULT_TOKEN%"
+      TRANSIT_SECRET_ENGINE_PATH_FIXED_IN_NEW_VERSION: "cosign-space"
+    command: ["python", "api.py"]
